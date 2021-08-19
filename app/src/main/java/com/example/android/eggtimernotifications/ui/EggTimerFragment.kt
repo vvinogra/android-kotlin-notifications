@@ -25,6 +25,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -50,16 +51,55 @@ class EggTimerFragment : Fragment() {
         binding.eggTimerViewModel = viewModel
         binding.lifecycleOwner = this.viewLifecycleOwner
 
-        // TODO: Step 1.7 call create channel
+        createChannel(
+            getString(R.string.egg_notification_channel_id),
+            getString(R.string.egg_notification_channel_name),
+            getString(R.string.egg_notification_channel_description),
+            NotificationManagerCompat.IMPORTANCE_HIGH
+        )
 
+        createChannel(
+            getString(R.string.breakfast_notification_channel_id),
+            getString(R.string.breakfast_notification_channel_name),
+            getString(R.string.breakfast_notification_channel_description),
+            NotificationManagerCompat.IMPORTANCE_LOW
+        )
+
+        subscribeTopic()
         return binding.root
     }
 
-    private fun createChannel(channelId: String, channelName: String) {
-        // TODO: Step 1.6 START create a channel
+    private fun createChannel(channelId: String, channelName: String, description: String, importanceLevel: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationChannel = NotificationChannel(
+                channelId,
+                channelName,
+                importanceLevel
+            ).apply {
+                enableLights(true)
+                lightColor = Color.RED
+                enableVibration(true)
+                this.description = description
+                setShowBadge(false)
+            }
 
-        // TODO: Step 1.6 END create a channel
+            val notificationManager = requireContext().getSystemService(
+                NotificationManager::class.java
+            ) as NotificationManager
 
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
+    }
+
+    private fun subscribeTopic() {
+        FirebaseMessaging.getInstance().subscribeToTopic(TOPIC)
+            .addOnCompleteListener { task ->
+                var msg = getString(R.string.message_subscribed)
+                if (!task.isSuccessful) {
+                    msg = getString(R.string.message_subscribe_failed)
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            }
     }
 
     companion object {
